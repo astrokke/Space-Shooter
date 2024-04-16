@@ -1,0 +1,626 @@
+<!-- @format -->
+
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <link href="https://unpkg.com/@material-tailwind/html@latest/styles/material-tailwind.css" rel="stylesheet" />
+    <meta charset="UTF-8" />
+    <title>Space Invaders</title>
+    <style>
+      body {
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-position: center;
+        background-image: url(/img/bg5.jpg);
+      }
+      canvas {
+        display: block;
+        margin: auto;
+      }
+      a {
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <a class="button" href="/LELE/index.html">Retour sur le portfolios</a>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        let score = 0;
+        let level = 1;
+        let aliens = [];
+        let lastFire = Date.now();
+        let fireDelay = 100; // ms between shots
+        let playerImg = new Image();
+        let alienImg = new Image();
+        let backgroundImage = new Image();
+        let bossProjectileImg = new Image();
+        let imagesLoaded = 0;
+        let totalImages = 4; // Total images to load
+        let powerUps = [];
+        let keyState = {};
+
+        playerImg.onload = alienImg.onload = backgroundImage.onload = bossProjectileImg.onload = imageLoaded;
+        playerImg.src = "/img/big_boss1.png";
+        alienImg.src = "/img/green.png";
+        backgroundImage.src = "/img/bg5.jpg";
+        bossProjectileImg.src = "/img/tirALIE.png";
+
+        document.addEventListener("keydown", function (e) {
+          keyState[e.key] = true;
+          if (e.key === "x") {
+            if (player.ultimAvailable) {
+              player.ultimShoot();
+            }
+          }
+        });
+        document.addEventListener("keyup", function (e) {
+          keyState[e.key] = false;
+        });
+
+        function imageLoaded() {
+          imagesLoaded++;
+          if (imagesLoaded === totalImages) {
+            initGame();
+          }
+        }
+
+        class Player {
+          constructor() {
+            this.x = canvas.width / 2;
+            this.y = canvas.height - 30;
+            this.width = 30;
+            this.height = 30;
+            this.speed = 5;
+            this.dx = 0;
+            this.projectiles = [];
+            this.lives = 10;
+            this.doubleShot = false;
+            this.ultimAvailable = true; // Disponible une seule fois
+            this.ultimActive = false; // État de l'activation de l'ultime
+            this.shieldActive = false; // État du bouclier
+            this.shieldDuration = 9000; // Durée du bouclier actif
+          }
+
+          enableDoubleShot() {
+            this.doubleShot = true;
+            setTimeout(() => (this.doubleShot = false), 10000); // 10 seconds
+          }
+
+          ultimShoot() {
+            if (this.ultimAvailable) {
+              for (let angle = -90; angle <= 90; angle += 1) {
+                // Utilisez un intervalle plus large si nécessaire
+                const radian = (angle * Math.PI) / 180;
+                const speedX = Math.sin(radian) * 10;
+                const speedY = -Math.cos(radian) * 10;
+                this.projectiles.push(new Projectile(this.x + this.width / 2, this.y, speedX, speedY));
+              }
+              this.ultimAvailable = false;
+              setTimeout(() => (this.ultimAvailable = true), 1); // 30 seconds
+            }
+          }
+          activateShield() {
+            this.shieldActive = true;
+            setTimeout(() => {
+              this.shieldActive = false;
+            }, this.shieldDuration);
+          }
+
+          draw() {
+            this.projectiles.forEach((projectile) => projectile.draw());
+            ctx.drawImage(playerImg, this.x, this.y, this.width, this.height);
+            if (this.shieldActive) {
+              ctx.beginPath();
+              ctx.arc(this.x + this.width / 2, this.y + this.height / 2, 40, 0, 2 * Math.PI, false);
+              ctx.fillStyle = "rgba(0, 255, 255, 0.5)"; // Couleur cyan avec transparence
+              ctx.fill();
+            }
+          }
+
+          update() {
+            if (this.x + this.dx > 0 && this.x + this.dx < canvas.width - this.width) {
+              this.x += this.dx;
+            }
+            this.projectiles.forEach((projectile) => projectile.update());
+          }
+
+          shoot() {
+            if (Date.now() - lastFire > fireDelay) {
+              if (this.doubleShot) {
+                // Créer deux projectiles avec un léger décalage horizontal
+                const projectile1 = new Projectile(this.x + this.width / 2 - 10, this.y);
+                const projectile2 = new Projectile(this.x + this.width / 2 + 10, this.y);
+                this.projectiles.push(projectile1, projectile2);
+              } else {
+                // Tir normal
+                const projectile = new Projectile(this.x + this.width / 2, this.y);
+                this.projectiles.push(projectile);
+              }
+              lastFire = Date.now();
+            }
+          }
+        }
+
+        class Projectile {
+          constructor(x, y, speedX = 0, speedY = -7) {
+            this.x = x;
+            this.y = y;
+            this.width = 5;
+            this.height = 15;
+            this.speedX = speedX;
+            this.speedY = speedY;
+          }
+
+          draw() {
+            ctx.fillStyle = "#FF0000";
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+          }
+
+          update() {
+            this.x += this.speedX;
+            this.y += this.speedY;
+          }
+        }
+
+        class Alien {
+          constructor(x, y, speedMultiplier) {
+            this.x = x;
+            this.y = y;
+            this.width = 30;
+            this.height = 20;
+            this.speed = speedMultiplier * 1;
+            this.projectiles = [];
+          }
+
+          draw() {
+            this.projectiles.forEach((projectile) => projectile.draw());
+            ctx.drawImage(alienImg, this.x, this.y, this.width, this.height);
+          }
+
+          update() {
+            this.x += this.speed;
+            if (this.x + this.width > canvas.width || this.x < 0) {
+              this.speed *= -1;
+              this.y += this.height;
+            }
+            this.projectiles.forEach((projectile) => projectile.update());
+            if (Math.random() < 0.01) {
+              // Chances de tirer
+              this.shoot();
+            }
+          }
+
+          shoot() {
+            this.projectiles.push(new AlienProjectile(this.x + this.width / 2, this.y + this.height));
+          }
+        }
+
+        class AlienProjectile {
+          constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.width = 5;
+            this.height = 10;
+            this.speed = 4;
+          }
+
+          draw() {
+            ctx.fillStyle = "#FFFF00";
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+          }
+
+          update() {
+            this.y += this.speed;
+          }
+        }
+        class Boss {
+          constructor() {
+            this.x = canvas.width / 2 - 75;
+            this.y = 30;
+            this.width = 150;
+            this.height = 120;
+            this.speed = 2;
+            this.health = 1000;
+            this.img = new Image();
+            this.img.src = "/img/red.png";
+            this.lastShot = Date.now();
+            this.projectiles = [];
+            this.isVulnerable = true;
+            this.alienSpawnRate = 0.01;
+          }
+
+          draw() {
+            ctx.drawImage(this.img, this.x, this.y, this.width, this.height);
+            this.projectiles.forEach((projectile) => projectile.draw());
+          }
+
+          update() {
+            this.projectiles.forEach((projectile) => {
+              projectile.update();
+              projectile.draw();
+            });
+
+            this.x += this.speed;
+            if (Math.random() < 0.1) {
+              this.speed *= -1;
+            }
+            if (this.x + this.width > canvas.width || this.x < 0) {
+              this.speed *= -1;
+              this.y += Math.random() > 0.5 ? 10 : -10;
+            }
+
+            if (this.health < 300 && this.isVulnerable) {
+              this.isVulnerable = false;
+              setTimeout(() => (this.isVulnerable = true), 5000);
+            }
+
+            this.shoot();
+            this.spawnAlien();
+          }
+
+          shoot() {
+            const now = Date.now();
+            if (now - this.lastShot > 1000) {
+              for (let i = -2; i <= 2; i++) {
+                this.projectiles.push(new BossProjectile(this.x + this.width / 2 - 5 + i * 10, this.y + this.height, i));
+              }
+              this.lastShot = now;
+            }
+          }
+
+          spawnAlien() {
+            if (Math.random() < this.alienSpawnRate) {
+              // Supposons que les nouveaux aliens apparaissent au-dessus du boss et tombent vers le bas
+              const alien = new Alien(this.x + this.width / 2, this.y + this.height, 1); // Assurez-vous que la vitesse et la position sont correctes
+              aliens.push(alien); // Ajoutez l'alien au tableau global des aliens
+            }
+          }
+        }
+
+        class BossProjectile {
+          constructor(x, y, horizontalSpeed = 0) {
+            this.x = x;
+            this.y = y;
+            this.horizontalSpeed = horizontalSpeed;
+            this.width = 20;
+            this.height = 30;
+            this.speed = 4;
+          }
+
+          draw() {
+            ctx.drawImage(bossProjectileImg, this.x, this.y, this.width, this.height);
+          }
+
+          update() {
+            this.x += this.horizontalSpeed;
+            this.y += this.speed;
+          }
+        }
+
+        class SuperBoss {
+          constructor() {
+            this.x = canvas.width / 2 - 50;
+            this.y = 20;
+            this.width = 100;
+            this.height = 80;
+            this.speed = 3;
+            this.health = 3000;
+            this.img = new Image();
+            this.img.src = "/img/yellow.png";
+            this.lastShot = Date.now();
+            this.projectiles = [];
+            this.isVulnerable = true;
+            this.summonedBosses = false;
+          }
+
+          draw() {
+            ctx.fillStyle = "#d0c050";
+            ctx.drawImage(this.img, this.x, this.y, this.width, this.height);
+            this.projectiles.forEach((projectile) => projectile.draw());
+          }
+
+          update() {
+            this.x += this.speed;
+            if (Math.random() < 0.2) {
+              this.speed *= -1;
+            }
+            if (this.x + this.width > canvas.width || this.x < 0) {
+              this.speed *= -1;
+              this.y += Math.random() > 0.5 ? 5 : -5;
+            }
+
+            this.handleProjectiles();
+
+            if (this.health < 1500 && !this.summonedBosses) {
+              aliens.push(new Boss());
+              aliens.push(new Boss());
+              aliens.push(new Boss());
+              this.summonedBosses = true;
+            }
+
+            if (Math.random() < 0.01) {
+              aliens.push(new Alien(this.x, this.y + this.height, 1));
+            }
+
+            if (this.isVulnerable) {
+              this.checkHealth();
+            }
+
+            this.shoot();
+          }
+
+          handleProjectiles() {
+            this.projectiles = this.projectiles.filter((projectile) => {
+              projectile.update();
+              projectile.draw();
+              return projectile.y < canvas.height && projectile.y > 10; // Gardez les projectiles dans le cadre
+            });
+          }
+
+          checkHealth() {}
+
+          shoot() {
+            const now = Date.now();
+            if (now - this.lastShot > 800) {
+              for (let i = -1; i <= 1; i++) {
+                this.projectiles.push(new BossProjectile(this.x + this.width / 2 - 5 + i * 10, this.y + this.height, i));
+              }
+              this.lastShot = now;
+            }
+          }
+        }
+
+        const powerUpImages = {
+          health: "/img/heal.png",
+          doubleShot: "/img/double.png",
+          "ultim shoot": "/img/ultime.png",
+          shield: "/img/shield.png",
+        };
+
+        class PowerUp {
+          constructor(x, y, type) {
+            this.x = x;
+            this.y = y;
+            this.type = type;
+            this.width = 20;
+            this.height = 20;
+            this.speedY = 2; // Vitesse de descente du power-up
+            this.img = new Image();
+            this.img.src = powerUpImages[type];
+          }
+
+          draw() {
+            ctx.drawImage(this.img, this.x, this.y, this.width, this.height);
+          }
+
+          update() {
+            this.y += this.speedY; // Déplace le power-up vers le bas
+            if (this.y > canvas.height) {
+              const index = powerUps.indexOf(this);
+              if (index > -1) {
+                powerUps.splice(index, 1);
+              }
+            }
+          }
+
+          collect(player) {
+            switch (this.type) {
+              case "health":
+                player.lives += 1;
+                break;
+              case "doubleShot":
+                player.enableDoubleShot();
+                break;
+              case "ultim shoot":
+                player.ultimShoot();
+                break;
+              case "shield":
+                player.activateShield();
+                break;
+            }
+          }
+        }
+        function spawnPowerUp(x, y) {
+          const rand = Math.random();
+          let type;
+          // Définissez d'abord les conditions les plus spécifiques et les plus rares
+          if (rand < 0.005) {
+            // 1% de chance pour l'ultim shoot, très rare
+            type = "ultim shoot";
+          } else if (rand < 0.05) {
+            // 9% de chance pour le doubleShot, plus commun
+            type = "doubleShot";
+          } else if (rand < 0.07) {
+            // 5% de chance pour health, encore plus commun
+            type = "health";
+          }
+
+          // Si un type a été déterminé, créez le power-up et ajoutez-le à la liste
+          if (type) {
+            const powerUp = new PowerUp(x, y, type);
+            powerUps.push(powerUp);
+          }
+        }
+
+        const player = new Player();
+        populateAliens(); // Populate initial aliens
+        let boss; // Déclarez boss au niveau supérieur
+
+        function populateAliens() {
+          aliens = [];
+          if (level === 10) {
+            let superBoss = new SuperBoss();
+            aliens.push(superBoss);
+          } else if (level === 5) {
+            boss = new Boss(); // Initialisez boss ici
+            aliens.push(boss); // Ajoutez le boss au tableau
+          } else {
+            for (let i = 0; i < 5; i++) {
+              for (let j = 0; j < 10; j++) {
+                aliens.push(new Alien(j * 40 + 10, i * 30 + 20, 1 + 0.5 * (level - 1)));
+              }
+            }
+          }
+        }
+
+        function checkPowerUpCollisions() {
+          for (let i = powerUps.length - 1; i >= 0; i--) {
+            const pu = powerUps[i];
+            if (pu.x < player.x + player.width && pu.x + pu.width > player.x && pu.y < player.y + player.height && pu.y + pu.height > player.y) {
+              pu.collect(player);
+              powerUps.splice(i, 1);
+            }
+          }
+        }
+
+        function detectCollisions() {
+          player.projectiles.forEach((projectile, pIndex) => {
+            aliens.forEach((alien, aIndex) => {
+              if (projectile.x < alien.x + alien.width && projectile.x + projectile.width > alien.x && projectile.y < alien.y + alien.height && projectile.y + projectile.height > alien.y) {
+                if (alien instanceof SuperBoss) {
+                  alien.health -= 10;
+                  if (alien.health <= 0) {
+                    aliens.splice(aIndex, 1);
+                    score += 7000;
+                    spawnPowerUp(alien.x, alien.y);
+                  }
+                } else if (alien instanceof Boss) {
+                  alien.health -= 10;
+                  if (alien.health <= 0) {
+                    aliens.splice(aIndex, 1);
+                    score += 1000;
+                    spawnPowerUp(alien.x, alien.y);
+                  }
+                } else {
+                  aliens.splice(aIndex, 1);
+                  spawnPowerUp(alien.x, alien.y);
+                }
+                player.projectiles.splice(pIndex, 1);
+                score += 10;
+              }
+            });
+          });
+        }
+
+        function detectPlayerCollisions() {
+          if (!player.shieldActive) {
+            aliens.forEach((alien, index) => {
+              alien.projectiles.forEach((projectile, projIndex) => {
+                if (projectile.x < player.x + player.width && projectile.x + projectile.width > player.x && projectile.y < player.y + player.height && projectile.y + projectile.height > player.y) {
+                  alien.projectiles.splice(projIndex, 1);
+                  player.lives -= 1;
+                  if (player.lives <= 0) {
+                    alert("Game Over!");
+                    document.location.reload();
+                  }
+                }
+              });
+            });
+          }
+        }
+
+        function detectAlienProjectilesCollisions() {
+          aliens.forEach((alien) => {
+            alien.projectiles.forEach((projectile, index) => {
+              if (!player.shieldActive && projectile.x < player.x + player.width && projectile.x + projectile.width > player.x && projectile.y < player.y + player.height && projectile.y + projectile.height > player.y) {
+                alien.projectiles.splice(index, 1);
+                player.lives -= 1;
+                if (player.lives <= 0) {
+                  alert("Game Over!");
+                  document.location.reload();
+                }
+              }
+            });
+          });
+        }
+        function drawScoreAndLevel() {
+          ctx.fillStyle = "#FFFFFF";
+          ctx.font = "16px Arial";
+          ctx.fillText("Score: " + score, 8, 20);
+          ctx.fillText("Level: " + level, canvas.width - 150, 20);
+          ctx.fillText("Lives: " + player.lives, canvas.width - 80, 20);
+        }
+
+        function checkLevelProgress() {
+          if (aliens.length === 0) {
+            if (level >= 10) {
+              endGame();
+            } else {
+              level++;
+              populateAliens();
+            }
+          }
+        }
+        function endGame() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = "#FFFFFF";
+          ctx.font = "36px Arial";
+          ctx.fillText("Bien Joue! Game Completed!", 100, canvas.height / 2);
+          window.cancelAnimationFrame(animationFrameId);
+        }
+
+        function detectBossProjectilesCollisions() {
+          if (boss) {
+            // Assurez-vous que boss est défini
+            boss.projectiles.forEach((projectile, index) => {
+              if (projectile.x < player.x + player.width && projectile.x + projectile.width > player.x && projectile.y < player.y + player.height && projectile.y + projectile.height > player.y) {
+                boss.projectiles.splice(index, 1); // Supprime le projectile
+                player.lives -= 1; // Le joueur perd une vie
+                if (player.lives <= 0) {
+                  alert("Game Over!");
+                  document.location.reload();
+                }
+              }
+            });
+          }
+        }
+        let animationFrameId;
+
+        function update() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          if (keyState["ArrowRight"] || keyState["d"]) {
+            player.dx = player.speed;
+          } else if (keyState["ArrowLeft"] || keyState["q"]) {
+            player.dx = -player.speed;
+          } else {
+            player.dx = 0;
+          }
+
+          if (keyState[" "]) {
+            player.shoot();
+          }
+
+          player.update();
+          player.draw();
+          aliens.forEach((alien) => {
+            alien.update();
+            alien.draw();
+          });
+          powerUps.forEach((powerUp) => {
+            powerUp.update(); // Mettre à jour la position du power-up
+            powerUp.draw();
+          });
+          checkPowerUpCollisions();
+          detectCollisions();
+          detectPlayerCollisions();
+          if (level === 5 && aliens.length > 0 && aliens[0] instanceof Boss) {
+            detectBossProjectilesCollisions();
+          }
+          detectAlienProjectilesCollisions();
+          checkLevelProgress();
+          drawScoreAndLevel();
+          animationFrameId = requestAnimationFrame(update);
+        }
+
+        function initGame() {
+          populateAliens();
+          requestAnimationFrame(update);
+        }
+      });
+    </script>
+  </body>
+</html>
