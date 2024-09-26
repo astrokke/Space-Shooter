@@ -11,7 +11,7 @@
         background-repeat: no-repeat;
         background-size: cover;
         background-position: center;
-        background-image: url(/img/bg5.jpg);
+        background-image: url(/bg5.jpg);
       }
       canvas {
         display: block;
@@ -44,10 +44,10 @@
         let keyState = {};
 
         playerImg.onload = alienImg.onload = backgroundImage.onload = bossProjectileImg.onload = imageLoaded;
-        playerImg.src = "/img/big_boss1.png";
-        alienImg.src = "/img/green.png";
-        backgroundImage.src = "/img/bg5.jpg";
-        bossProjectileImg.src = "/img/tirALIE.png";
+        playerImg.src = "/big_boss1.png";
+        alienImg.src = "/green.png";
+        backgroundImage.src = "/bg5.jpg";
+        bossProjectileImg.src = "/tirALIE.png";
 
         document.addEventListener("keydown", function (e) {
           keyState[e.key] = true;
@@ -226,7 +226,7 @@
             this.speed = 2;
             this.health = 1000;
             this.img = new Image();
-            this.img.src = "/img/red.png";
+            this.img.src = "/red.png";
             this.lastShot = Date.now();
             this.projectiles = [];
             this.isVulnerable = true;
@@ -310,7 +310,7 @@
             this.speed = 3;
             this.health = 3000;
             this.img = new Image();
-            this.img.src = "/img/yellow.png";
+            this.img.src = "/yellow.png";
             this.lastShot = Date.now();
             this.projectiles = [];
             this.isVulnerable = true;
@@ -375,10 +375,10 @@
         }
 
         const powerUpImages = {
-          health: "/img/heal.png",
-          doubleShot: "/img/double.png",
-          "ultim shoot": "/img/ultime.png",
-          shield: "/img/shield.png",
+          health: "/heal.png",
+          doubleShot: "/double.png",
+          "ultim shoot": "/ultime.png",
+          shield: "/shield.png",
         };
 
         class PowerUp {
