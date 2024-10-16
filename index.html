@@ -44,10 +44,10 @@
         let keyState = {};
 
         playerImg.onload = alienImg.onload = backgroundImage.onload = bossProjectileImg.onload = imageLoaded;
-        playerImg.src = "/big_boss1.png";
-        alienImg.src = "/green.png";
-        backgroundImage.src = "/bg5.jpg";
-        bossProjectileImg.src = "/tirALIE.png";
+        playerImg.src = "assets/big_boss1.png";
+        alienImg.src = "assets/green.png";
+        backgroundImage.src = "assets/bg5.jpg";
+        bossProjectileImg.src = "assets/tirALIE.png";
 
         document.addEventListener("keydown", function (e) {
           keyState[e.key] = true;
@@ -226,7 +226,7 @@
             this.speed = 2;
             this.health = 1000;
             this.img = new Image();
-            this.img.src = "/red.png";
+            this.img.src = "assets/red.png";
             this.lastShot = Date.now();
             this.projectiles = [];
             this.isVulnerable = true;
@@ -310,7 +310,7 @@
             this.speed = 3;
             this.health = 3000;
             this.img = new Image();
-            this.img.src = "/yellow.png";
+            this.img.src = "assets/yellow.png";
             this.lastShot = Date.now();
             this.projectiles = [];
             this.isVulnerable = true;
